@@ -15,9 +15,8 @@ const path = defaultRequire("path");
 const readline = defaultRequire("readline");
 const fs = defaultRequire("fs-extra");
 const toptp = defaultRequire("totp-generator");
-const login = require("@dongdev/fca-unofficial");
-
-//const login = require(`${process.cwd()}/fb-chat-api`);
+const login = require(`${process.cwd()}/fb-chat-api`);
+//const login = require("@dongdev/fca-unofficial");
 const qr = new (defaultRequire("qrcode-reader"));
 const Canvas = defaultRequire("canvas");
 const https = defaultRequire("https");
