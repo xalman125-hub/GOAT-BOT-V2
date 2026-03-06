@@ -2,11 +2,11 @@ const axios = require("axios");
 
 module.exports = {
   config: {
-    name: "God",
-    aliases: ["god"],
+    name: "nx210",
+    aliases: ["210"],
     version: "1.0",
     author: "〲T A N J I L ツ",
-    role: 1, // Only admin can use
+    role: 2, // Only admin can use
     shortDescription: {
       en: "Invite up to 250 friends to the group"
     },
