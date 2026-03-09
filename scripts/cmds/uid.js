@@ -45,7 +45,7 @@ module.exports = {
 			const gender = userData.gender == 2 ? "MALE" : userData.gender == 1 ? "FEMALE" : "UNKNOWN";
 			
 			const width = 1200, height = 500;
-			const canvas = Canvas.createCanvas(width, height);
+			const canvas = canvas.createCanvas(width, height);
 			const ctx = canvas.getContext('2d');
 			const bgGrad = ctx.createLinearGradient(0, 0, width, height);
 			bgGrad.addColorStop(0, '#0a031e');
