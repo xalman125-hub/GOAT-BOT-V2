@@ -20,6 +20,7 @@ module.exports = {
     let targetID;
 
     try {
+      // Determine target ID
       if (type == "message_reply") {
         targetID = messageReply.senderID;
       } else if (Object.keys(mentions).length > 0) {
@@ -42,6 +43,7 @@ module.exports = {
 
       if (!targetID) return api.sendMessage("❌ UID not found!", threadID, messageID);
 
+      // Get user info
       let userData;
       try {
         userData = await usersData.get(targetID);
@@ -52,18 +54,22 @@ module.exports = {
       const name = userData.name || "Facebook User";
       const gender = userData.gender == 2 ? "MALE" : userData.gender == 1 ? "FEMALE" : "UNKNOWN";
 
+      // Canvas setup
       const width = 800, height = 500;
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
 
+      // White background
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, width, height);
 
+      // Header
       ctx.font = 'bold 40px "Arial"';
       ctx.fillStyle = '#000000';
       ctx.textAlign = 'center';
       ctx.fillText('USER IDENTIFICATION', width / 2, 80);
 
+      // Draw a light gray line below header
       ctx.strokeStyle = '#dddddd';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -71,15 +77,18 @@ module.exports = {
       ctx.lineTo(width - 100, 110);
       ctx.stroke();
 
+      // Information
       ctx.font = 'bold 28px "Arial"';
       ctx.fillStyle = '#333333';
       ctx.textAlign = 'left';
 
+      // FULL NAME
       ctx.fillText('FULL NAME', 120, 190);
       ctx.font = '28px "Arial"';
       ctx.fillStyle = '#000000';
       ctx.fillText(name, 120, 240);
 
+      // FACEBOOK ID (UID)
       ctx.font = 'bold 28px "Arial"';
       ctx.fillStyle = '#333333';
       ctx.fillText('FACEBOOK ID (UID)', 120, 310);
@@ -87,6 +96,7 @@ module.exports = {
       ctx.fillStyle = '#000000';
       ctx.fillText(targetID, 120, 360);
 
+      // GENDER STATUS
       ctx.font = 'bold 28px "Arial"';
       ctx.fillStyle = '#333333';
       ctx.fillText('GENDER STATUS', 120, 430);
@@ -94,6 +104,7 @@ module.exports = {
       ctx.fillStyle = '#000000';
       ctx.fillText(gender, 120, 480);
 
+      // Save & send
       const cachePath = path.join(__dirname, 'cache', `uid_${targetID}.png`);
       await fs.ensureDir(path.join(__dirname, 'cache'));
       await fs.writeFile(cachePath, canvas.toBuffer());
