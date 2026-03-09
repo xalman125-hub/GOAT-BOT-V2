@@ -1,4 +1,4 @@
-const Canvas = require("canvas");
+Const Canvas = require("canvas");
 const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
@@ -6,11 +6,11 @@ const path = require("path");
 module.exports = {
 	config: {
 		name: "uid",
-		version: "5.0",
+		version: "4.0",
 		author: "xalman",
 		countDown: 3,
 		role: 0,
-		description: "Get User ID with 3-Layer System UI",
+		description: "Get User ID with upgraded UI",
 		category: "info",
 		guide: "{pn} [tag/reply/link]"
 	},
@@ -41,80 +41,71 @@ module.exports = {
 			let userData;
 			try { userData = await usersData.get(targetID); } catch (err) { userData = { name: "Facebook User", gender: 0 }; }
 
-			const name = (userData.name || "Facebook User").toUpperCase();
+			const name = userData.name || "Facebook User";
 			const gender = userData.gender == 2 ? "MALE" : userData.gender == 1 ? "FEMALE" : "UNKNOWN";
 			
-			const width = 1200, height = 550;
+			const width = 1200, height = 500;
 			const canvas = Canvas.createCanvas(width, height);
 			const ctx = canvas.getContext('2d');
-
 			const bgGrad = ctx.createLinearGradient(0, 0, width, height);
 			bgGrad.addColorStop(0, '#0a031e');
 			bgGrad.addColorStop(1, '#1a052b');
 			ctx.fillStyle = bgGrad;
 			ctx.fillRect(0, 0, width, height);
-
-			ctx.strokeStyle = "rgba(0, 255, 255, 0.08)";
+			ctx.strokeStyle = "rgba(0, 255, 255, 0.05)";
 			ctx.lineWidth = 1;
 			for (let i = 0; i < width; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke(); }
 			for (let i = 0; i < height; i += 40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(width, i); ctx.stroke(); }
-
-			for (let i = 0; i < 50; i++) {
-				ctx.fillStyle = Math.random() > 0.5 ? "rgba(0, 255, 255, 0.4)" : "rgba(255, 0, 85, 0.4)";
+			for (let i = 0; i < 30; i++) {
+				ctx.fillStyle = Math.random() > 0.5 ? "rgba(0, 255, 255, 0.3)" : "rgba(255, 0, 255, 0.3)";
 				ctx.beginPath();
-				ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 2.5, 0, Math.PI * 2);
+				ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 3, 0, Math.PI * 2);
 				ctx.fill();
 			}
-
-			ctx.shadowBlur = 20; ctx.shadowColor = '#00f2ff';
-			ctx.fillStyle = "rgba(0, 242, 255, 0.15)";
-			ctx.roundRect(width / 4, 30, width / 2, 70, 15);
-			ctx.fill();
-			ctx.strokeStyle = '#00f2ff'; ctx.lineWidth = 3;
-			ctx.stroke();
 			
+			ctx.shadowBlur = 15; ctx.shadowColor = '#00f2ff';
+			ctx.fillStyle = "rgba(0, 242, 255, 0.1)";
+			ctx.fillRect(width / 4, 20, width / 2, 70);
+			ctx.strokeStyle = '#00f2ff'; ctx.lineWidth = 2;
+			ctx.strokeRect(width / 4, 20, width / 2, 70);	
 			ctx.shadowBlur = 0;
-			ctx.font = 'bold 40px sans-serif'; ctx.fillStyle = '#00f2ff'; ctx.textAlign = 'center';
-			ctx.fillText('IDENTITY VERIFIED', width / 2, 80);
+			ctx.font = 'bold 45px Courier New'; ctx.fillStyle = '#00f2ff'; ctx.textAlign = 'center';
+			ctx.fillText('USER IDENTIFICATION', width / 2, 70);
 
 			const info = [
-				{ l: "FULL NAME", v: name },
-				{ l: "USER ID (UID)", v: String(targetID) },
+				{ l: "FULL NAME", v: name.toUpperCase() },
+				{ l: "FACEBOOK ID (UID)", v: String(targetID) },
 				{ l: "GENDER STATUS", v: gender }
 			];
 
 			ctx.textAlign = 'left';
 			info.forEach((item, i) => {
-				const x = 480, y = 150 + i * 120;
-				ctx.shadowBlur = 15; ctx.shadowColor = '#ff0055';
-				ctx.fillStyle = "rgba(255, 0, 85, 0.05)";
-				ctx.roundRect(x, y, 650, 95, 10);
-				ctx.fill();
+				const x = 450, y = 140 + i * 110;
+				ctx.shadowBlur = 10; ctx.shadowColor = '#ff0055';
 				ctx.strokeStyle = '#ff0055'; ctx.lineWidth = 2;
-				ctx.stroke();
-				
+				ctx.strokeRect(x, y, 700, 85);	
 				ctx.shadowBlur = 0;
-				ctx.font = 'bold 14px Monospace'; ctx.fillStyle = '#ff0055';
-				ctx.fillText(item.l, x + 20, y + 30);
-				ctx.font = 'bold 32px sans-serif'; ctx.fillStyle = '#ffffff';
-				ctx.fillText(item.v, x + 20, y + 75);
+				ctx.font = '12px Monaco'; ctx.fillStyle = '#ff0055';
+				ctx.fillText(item.l, x + 15, y + 25);
+				ctx.font = 'bold 30px sans-serif'; ctx.fillStyle = '#ffffff';
+				ctx.fillText(item.v, x + 15, y + 65);
 			});
 
 			const avatarUrl = `https://graph.facebook.com/${targetID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
 			try {
 				const avatarImg = await Canvas.loadImage(avatarUrl);
 				ctx.save();
-				ctx.shadowBlur = 30; ctx.shadowColor = '#00f2ff';
-				ctx.strokeStyle = '#00f2ff'; ctx.lineWidth = 10;
+				ctx.shadowBlur = 25; ctx.shadowColor = '#00f2ff';
+				ctx.strokeStyle = '#00f2ff'; ctx.lineWidth = 8;
 				ctx.beginPath();
-				ctx.arc(240, 310, 175, 0, Math.PI * 2);
+				ctx.arc(225, 295, 160, 0, Math.PI * 2); // Circular frame
 				ctx.stroke();
 				ctx.clip();
-				ctx.drawImage(avatarImg, 65, 135, 350, 350);
+				ctx.drawImage(avatarImg, 65, 135, 320, 320);
 				ctx.restore();
 			} catch(e) {
-				ctx.fillStyle = "#222";
-				ctx.beginPath(); ctx.arc(240, 310, 175, 0, Math.PI * 2); ctx.fill();
+				ctx.fillStyle = "#333";
+				ctx.beginPath(); ctx.arc(225, 295, 160, 0, Math.PI * 2); ctx.fill();
 			}
 
 			const cachePath = path.join(__dirname, 'cache', `uid_${targetID}.png`);
