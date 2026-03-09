@@ -6,8 +6,8 @@ const path = require("path");
 module.exports = {
 	config: {
 		name: "uid",
-		version: "2.5",
-		author: "xalman",
+		version: "2.8",
+		author: "xalman", //
 		countDown: 3,
 		role: 0,
 		description: "Get User ID and info in a stylish card",
@@ -29,16 +29,21 @@ module.exports = {
 			else if (Object.keys(mentions).length > 0) {
 				targetID = Object.keys(mentions)[0];
 			} 
-			// ৩. লিঙ্ক থেকে আইডি বের করা
+			// ৩. প্রোফাইল লিঙ্ক থেকে UID বের করার উন্নত লজিক
 			else if (args.length > 0) {
 				const input = args[0];
 				if (input.includes("facebook.com") || input.includes("fb.com")) {
 					try {
-						// লিঙ্ক থেকে UID বের করার জন্য API
 						const res = await axios.get(`https://api.vyturex.com/fblink?url=${encodeURIComponent(input)}`);
-						targetID = res.data.id;
+						if (res.data && res.data.id) {
+							targetID = res.data.id;
+						} else {
+							// বিকল্প API যদি প্রথমটি ফেইল করে
+							const altRes = await axios.get(`https://id.traodoisub.com/api.php?link=${input}`);
+							targetID = altRes.data.id;
+						}
 					} catch(e) {
-						return api.sendMessage("❌ Invalid Facebook link or unable to fetch UID.", threadID, messageID);
+						return api.sendMessage("❌ Could not extract UID from this link.", threadID, messageID);
 					}
 				} else {
 					targetID = input;
@@ -48,15 +53,23 @@ module.exports = {
 				targetID = senderID;
 			}
 
-			// ৪. ডেটা সংগ্রহ
-			const userData = await usersData.get(targetID);
-			const name = userData.name || "Unknown User";
+			// ৪. ডেটা সংগ্রহ (Error Handling সহ)
+			let userData;
+			try {
+				userData = await usersData.get(targetID);
+			} catch (err) {
+				// যদি ডাটাবেজে ইউজার না থাকে তবে নাম Unknown দেখাবে
+				userData = { name: "Facebook User", gender: 0 };
+			}
+
+			const name = userData.name || "Facebook User";
 			const gender = userData.gender == 2 ? "MALE" : userData.gender == 1 ? "FEMALE" : "UNKNOWN";
 			
 			const width = 1200, height = 500;
 			const canvas = Canvas.createCanvas(width, height);
 			const ctx = canvas.getContext('2d');
 
+			// ব্যাকগ্রাউন্ড ডিজাইন
 			ctx.fillStyle = "#0d1117";
 			ctx.fillRect(0, 0, width, height);
 
@@ -70,16 +83,15 @@ module.exports = {
 			ctx.textAlign = 'center';
 			ctx.fillText('USER IDENTIFICATION', width / 2, 80);
 
-			// ৩টি বক্স রাখা হয়েছে (Verified Database রিমুভ করা হয়েছে)
 			const info = [
 				{ l: "FULL NAME", v: name.toUpperCase() },
-				{ l: "FACEBOOK ID (UID)", v: targetID },
+				{ l: "FACEBOOK ID (UID)", v: String(targetID) },
 				{ l: "GENDER STATUS", v: gender }
 			];
 
 			ctx.textAlign = 'left';
 			info.forEach((item, i) => {
-				const x = 450, y = 140 + i * 100; // স্পেসিং বাড়ানো হয়েছে
+				const x = 450, y = 140 + i * 100;
 				ctx.strokeStyle = '#ff0055';
 				ctx.lineWidth = 2;
 				ctx.strokeRect(x, y, 700, 80);
@@ -106,11 +118,13 @@ module.exports = {
 			fs.ensureDirSync(path.join(__dirname, 'cache'));
 			fs.writeFileSync(cachePath, canvas.toBuffer());
 			
-			// টেক্সট পরিবর্তন করা হয়েছে
+			// শুধুমাত্র UID টেক্সট এবং ইমেজ পাঠানো হচ্ছে
 			api.sendMessage({ 
 				body: `${targetID}`,
 				attachment: fs.createReadStream(cachePath) 
-			}, threadID, () => fs.unlinkSync(cachePath), messageID);
+			}, threadID, () => {
+				if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
+			}, messageID);
 
 		} catch (e) { 
 			api.sendMessage(`❌ Error: ${e.message}`, threadID, messageID); 
