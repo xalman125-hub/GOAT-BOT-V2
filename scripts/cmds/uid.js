@@ -6,8 +6,8 @@ const path = require("path");
 module.exports = {
 	config: {
 		name: "uid",
-		version: "2.8",
-		author: "xalman", //
+		version: "3.5",
+		author: "xalman",
 		countDown: 3,
 		role: 0,
 		description: "Get User ID and info in a stylish card",
@@ -29,21 +29,27 @@ module.exports = {
 			else if (Object.keys(mentions).length > 0) {
 				targetID = Object.keys(mentions)[0];
 			} 
-			// ৩. প্রোফাইল লিঙ্ক থেকে UID বের করার উন্নত লজিক
+			// ৩. লিঙ্ক থেকে আইডি বের করার জন্য মাল্টিপল এপিআই মেথড
 			else if (args.length > 0) {
 				const input = args[0];
 				if (input.includes("facebook.com") || input.includes("fb.com")) {
 					try {
-						const res = await axios.get(`https://api.vyturex.com/fblink?url=${encodeURIComponent(input)}`);
-						if (res.data && res.data.id) {
-							targetID = res.data.id;
+						// প্রথম চেষ্টা: Traodoisub API
+						const res1 = await axios.get(`https://id.traodoisub.com/api.php?link=${encodeURIComponent(input)}`);
+						if (res1.data && res1.data.id) {
+							targetID = res1.data.id;
 						} else {
-							// বিকল্প API যদি প্রথমটি ফেইল করে
-							const altRes = await axios.get(`https://id.traodoisub.com/api.php?link=${input}`);
-							targetID = altRes.data.id;
+							// দ্বিতীয় চেষ্টা: Vyturex API
+							const res2 = await axios.get(`https://api.vyturex.com/fblink?url=${encodeURIComponent(input)}`);
+							targetID = res2.data.id;
 						}
 					} catch(e) {
-						return api.sendMessage("❌ Could not extract UID from this link.", threadID, messageID);
+						// তৃতীয় চেষ্টা: গ্লোবাল মেথড (যদি বটে থাকে)
+						if (global.utils && global.utils.findUid) {
+							targetID = await global.utils.findUid(input);
+						} else {
+							return api.sendMessage("❌ Error: Could not extract UID from this link.", threadID, messageID);
+						}
 					}
 				} else {
 					targetID = input;
@@ -53,12 +59,13 @@ module.exports = {
 				targetID = senderID;
 			}
 
-			// ৪. ডেটা সংগ্রহ (Error Handling সহ)
+			if (!targetID) return api.sendMessage("❌ User not found!", threadID, messageID);
+
+			// ৪. ইউজার ডেটা সংগ্রহ
 			let userData;
 			try {
 				userData = await usersData.get(targetID);
 			} catch (err) {
-				// যদি ডাটাবেজে ইউজার না থাকে তবে নাম Unknown দেখাবে
 				userData = { name: "Facebook User", gender: 0 };
 			}
 
@@ -69,11 +76,12 @@ module.exports = {
 			const canvas = Canvas.createCanvas(width, height);
 			const ctx = canvas.getContext('2d');
 
-			// ব্যাকগ্রাউন্ড ডিজাইন
+			// ব্যাকগ্রাউন্ড
 			ctx.fillStyle = "#0d1117";
 			ctx.fillRect(0, 0, width, height);
 
-			ctx.strokeStyle = "rgba(0, 242, 255, 0.05)";
+			// গ্রিড এনিমেশন স্টাইল
+			ctx.strokeStyle = "rgba(0, 242, 255, 0.08)";
 			ctx.lineWidth = 1;
 			for (let i = 0; i < width; i += 50) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke(); }
 			for (let i = 0; i < height; i += 50) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(width, i); ctx.stroke(); }
@@ -114,11 +122,10 @@ module.exports = {
 				ctx.fillRect(50, 120, 350, 350);
 			}
 
-			const cachePath = path.join(__dirname, 'cache', `${targetID}_uid.png`);
+			const cachePath = path.join(__dirname, 'cache', `uid_${targetID}.png`);
 			fs.ensureDirSync(path.join(__dirname, 'cache'));
 			fs.writeFileSync(cachePath, canvas.toBuffer());
 			
-			// শুধুমাত্র UID টেক্সট এবং ইমেজ পাঠানো হচ্ছে
 			api.sendMessage({ 
 				body: `${targetID}`,
 				attachment: fs.createReadStream(cachePath) 
