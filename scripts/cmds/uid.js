@@ -4,247 +4,119 @@ const fs = require("fs-extra");
 const path = require("path");
 
 module.exports = {
-	config: {
-		name: "uid",
-		version: "4.0",
-		author: "xalman",
-		countDown: 3,
-		role: 0,
-		description: "Get User ID and info in a stylish card",
-		category: "info",
-		guide: "{pn} [tag/reply/link/none]"
-	},
-
-	onStart: async function ({ event, usersData, api, args }) {
-
-		const { threadID, senderID, messageID, mentions, messageReply, type } = event;
-
-		let targetID;
-
-		try {
-
-			if (type == "message_reply") {
-				targetID = messageReply.senderID;
-			}
-
-			else if (Object.keys(mentions).length > 0) {
-				targetID = Object.keys(mentions)[0];
-			}
-
-			else if (args.length > 0) {
-
-				const input = args[0];
-
-				if (input.includes("facebook.com") || input.includes("fb.com")) {
-
-					try {
-
-						const res1 = await axios.get(`https://id.traodoisub.com/api.php?link=${encodeURIComponent(input)}`);
-
-						if (res1.data && res1.data.id) {
-							targetID = res1.data.id;
-						}
-
-						else {
-
-							const res2 = await axios.get(`https://api.vyturex.com/fblink?url=${encodeURIComponent(input)}`);
-
-							targetID = res2.data.id;
-
-						}
-
-					} catch (e) {
-
-						if (global.utils && global.utils.findUid) {
-							targetID = await global.utils.findUid(input);
-						}
-
-						else {
-							return api.sendMessage("❌ Error: Could not extract UID from this link.", threadID, messageID);
-						}
-
-					}
-
-				}
-
-				else {
-					targetID = input;
-				}
-
-			}
-
-			else {
-				targetID = senderID;
-			}
-
-			if (!targetID) return api.sendMessage("❌ User not found!", threadID, messageID);
-
-			let userData;
-
-			try {
-				userData = await usersData.get(targetID);
-			}
-
-			catch {
-				userData = { name: "Facebook User", gender: 0 };
-			}
-
-			const name = userData.name || "Facebook User";
-			const gender = userData.gender == 2 ? "MALE" : userData.gender == 1 ? "FEMALE" : "UNKNOWN";
-
-			const width = 1200;
-			const height = 500;
-
-			const canvas = Canvas.createCanvas(width, height);
-			const ctx = canvas.getContext("2d");
-
-			// ===== Background =====
-
-			const bg = ctx.createLinearGradient(0, 0, width, height);
-			bg.addColorStop(0, "#0f0c29");
-			bg.addColorStop(0.5, "#302b63");
-			bg.addColorStop(1, "#24243e");
-
-			ctx.fillStyle = bg;
-			ctx.fillRect(0, 0, width, height);
-
-			ctx.strokeStyle = "rgba(0,255,255,0.05)";
-			ctx.lineWidth = 1;
-
-			for (let x = 0; x < width; x += 60) {
-				ctx.beginPath();
-				ctx.moveTo(x, 0);
-				ctx.lineTo(x, height);
-				ctx.stroke();
-			}
-
-			for (let y = 0; y < height; y += 60) {
-				ctx.beginPath();
-				ctx.moveTo(0, y);
-				ctx.lineTo(width, y);
-				ctx.stroke();
-			}
-
-			for (let i = 0; i < 7; i++) {
-
-				const x = Math.random() * width;
-				const y = Math.random() * height;
-				const r = 80 + Math.random() * 120;
-
-				const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
-				glow.addColorStop(0, "rgba(0,255,255,0.12)");
-				glow.addColorStop(1, "transparent");
-
-				ctx.fillStyle = glow;
-				ctx.beginPath();
-				ctx.arc(x, y, r, 0, Math.PI * 2);
-				ctx.fill();
-
-			}
-
-			ctx.fillStyle = "rgba(255,255,255,0.03)";
-			ctx.fillRect(420, 120, 740, 300);
-
-			ctx.strokeStyle = "rgba(0,255,255,0.3)";
-			ctx.lineWidth = 2;
-			ctx.strokeRect(420, 120, 740, 300);
-
-			// ===== Title =====
-
-			ctx.font = "bold 50px Courier New";
-			ctx.fillStyle = "#00f2ff";
-			ctx.textAlign = "center";
-			ctx.fillText("USER IDENTIFICATION", width / 2, 80);
-
-			// ===== Info =====
-
-			const info = [
-				{ l: "FULL NAME", v: name.toUpperCase() },
-				{ l: "FACEBOOK UID", v: String(targetID) },
-				{ l: "GENDER", v: gender }
-			];
-
-			ctx.textAlign = "left";
-
-			info.forEach((item, i) => {
-
-				const x = 450;
-				const y = 150 + i * 90;
-
-				ctx.strokeStyle = "#ff0055";
-				ctx.lineWidth = 2;
-				ctx.strokeRect(x, y, 650, 70);
-
-				ctx.font = "14px Monaco";
-				ctx.fillStyle = "#ff0055";
-				ctx.fillText(item.l, x + 15, y + 25);
-
-				ctx.font = "bold 26px sans-serif";
-				ctx.fillStyle = "#ffffff";
-				ctx.fillText(item.v, x + 15, y + 55);
-
-			});
-
-			// ===== Avatar =====
-
-			const avatarUrl = `https://graph.facebook.com/${targetID}/picture?width=512&height=512`;
-
-			try {
-
-				const avatarImg = await Canvas.loadImage(avatarUrl);
-
-				ctx.save();
-				ctx.beginPath();
-				ctx.arc(225, 295, 170, 0, Math.PI * 2);
-				ctx.closePath();
-				ctx.clip();
-
-				ctx.drawImage(avatarImg, 55, 125, 340, 340);
-				ctx.restore();
-
-				ctx.strokeStyle = "#00f2ff";
-				ctx.lineWidth = 6;
-				ctx.shadowBlur = 20;
-				ctx.shadowColor = "#00f2ff";
-
-				ctx.beginPath();
-				ctx.arc(225, 295, 175, 0, Math.PI * 2);
-				ctx.stroke();
-
-			}
-
-			catch {
-
-				ctx.fillStyle = "#333";
-				ctx.fillRect(50, 120, 350, 350);
-
-			}
-
-			const cachePath = path.join(__dirname, "cache", `uid_${targetID}.png`);
-
-			fs.ensureDirSync(path.join(__dirname, "cache"));
-
-			fs.writeFileSync(cachePath, canvas.toBuffer());
-
-			api.sendMessage(
-				{
-					body: `${targetID}`,
-					attachment: fs.createReadStream(cachePath)
-				},
-				threadID,
-				() => {
-					if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
-				},
-				messageID
-			);
-
-		}
-
-		catch (e) {
-
-			api.sendMessage(`❌ Error: ${e.message}`, threadID, messageID);
-
-		}
-
-	}
+    config: {
+        name: "uid",
+        version: "5.0",
+        author: "xalman",
+        countDown: 2,
+        role: 0,
+        description: "Next-Gen UID Identification Card",
+        category: "info",
+        guide: "{pn} [tag/reply/profile link ]"
+    },
+
+    onStart: async function ({ event, usersData, api, args }) {
+        const { threadID, senderID, messageID, mentions, messageReply, type } = event;
+        let targetID;
+
+        try {
+            if (type == "message_reply") {
+                targetID = messageReply.senderID;
+            } else if (Object.keys(mentions).length > 0) {
+                targetID = Object.keys(mentions)[0];
+            } else if (args.length > 0) {
+                const input = args[0];
+                if (input.includes("facebook.com") || input.includes("fb.com")) {
+                    const res = await axios.get(`https://id.traodoisub.com/api.php?link=${encodeURIComponent(input)}`);
+                    targetID = res.data.id;
+                } else { targetID = input; }
+            } else { targetID = senderID; }
+
+            if (!targetID) return api.sendMessage("❌ UID not found!", threadID, messageID);
+
+            const userData = await usersData.get(targetID) || { name: "Facebook User", gender: 0 };
+            const name = (userData.name || "Unknown User").toUpperCase();
+            const gender = userData.gender == 2 ? "MALE" : userData.gender == 1 ? "FEMALE" : "NON-BINARY";
+            
+            const width = 1200, height = 600;
+            const canvas = Canvas.createCanvas(width, height);
+            const ctx = canvas.getContext('2d');
+
+            const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
+            gradient.addColorStop(0, '#1a1a2e');
+            gradient.addColorStop(1, '#020205');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.strokeStyle = "rgba(0, 255, 255, 0.1)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i < width; i += 50) {
+                for (let j = 0; j < height; j += 50) {
+                    ctx.strokeRect(i, j, 48, 48);
+                }
+            }
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+            ctx.roundRect(50, 50, 1100, 500, 30);
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+            ctx.stroke();
+
+            const avatarUrl = `https://graph.facebook.com/${targetID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
+            try {
+                const avatarImg = await Canvas.loadImage(avatarUrl);
+                ctx.save();
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = '#00d4ff';
+                ctx.beginPath();
+                ctx.arc(280, 300, 180, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.lineWidth = 10;
+                ctx.strokeStyle = '#00d4ff';
+                ctx.stroke();
+                ctx.clip();
+                ctx.drawImage(avatarImg, 100, 120, 360, 360);
+                ctx.restore();
+            } catch(e) { 
+                ctx.fillStyle = "#333";
+                ctx.beginPath(); ctx.arc(280, 300, 180, 0, Math.PI * 2); ctx.fill();
+            }
+
+            ctx.shadowBlur = 0;
+            const startX = 520;
+
+            ctx.font = 'italic bold 25px Arial';
+            ctx.fillStyle = '#00d4ff';
+            ctx.fillText('NETWORK ACCESS GRANTED // ID CARD', startX, 120);
+
+            ctx.font = 'bold 70px sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(name.length > 15 ? name.substring(0, 15) + '..' : name, startX, 210);
+
+            const drawLabel = (label, value, y) => {
+                ctx.font = '16px Monospace';
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.fillText(label, startX, y);
+                ctx.font = '35px Monospace';
+                ctx.fillStyle = '#00ffcc';
+                ctx.fillText(value, startX, y + 40);
+            };
+
+            drawLabel("SYSTEM_UID_SERIAL", targetID, 280);
+            drawLabel("BIOLOGICAL_MARKER", gender, 380);
+            drawLabel("ACCESS_LEVEL", targetID.length > 10 ? "LEVEL_03 [VETERAN]" : "LEVEL_01 [CITIZEN]", 480);
+
+            const cachePath = path.join(__dirname, 'cache', `uid_v5_${targetID}.png`);
+            fs.ensureDirSync(path.join(__dirname, 'cache'));
+            fs.writeFileSync(cachePath, canvas.toBuffer());
+            
+            api.sendMessage({ 
+                body: `✅ Identity Verified for: ${name}`,
+                attachment: fs.createReadStream(cachePath) 
+            }, threadID, () => { if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath); }, messageID);
+
+        } catch (e) { 
+            api.sendMessage(`❌ Error: ${e.message}`, threadID, messageID); 
+        }
+    }
 };
