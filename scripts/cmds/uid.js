@@ -1,4 +1,4 @@
-const { createCanvas, loadImage } = require("canvas");
+const { createCanvas } = require("canvas");
 const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
@@ -6,11 +6,11 @@ const path = require("path");
 module.exports = {
   config: {
     name: "uid",
-    version: "6.1",
+    version: "5.0",
     author: "xalman",
     countDown: 3,
     role: 0,
-    description: "Get User ID with profile picture",
+    description: "Get User ID with simple clean design",
     category: "info",
     guide: "{pn} [tag/reply/link]"
   },
@@ -20,7 +20,6 @@ module.exports = {
     let targetID;
 
     try {
-      // Determine target ID (same as before)
       if (type == "message_reply") {
         targetID = messageReply.senderID;
       } else if (Object.keys(mentions).length > 0) {
@@ -43,7 +42,6 @@ module.exports = {
 
       if (!targetID) return api.sendMessage("❌ UID not found!", threadID, messageID);
 
-      // Get user info
       let userData;
       try {
         userData = await usersData.get(targetID);
@@ -54,8 +52,7 @@ module.exports = {
       const name = userData.name || "Facebook User";
       const gender = userData.gender == 2 ? "MALE" : userData.gender == 1 ? "FEMALE" : "UNKNOWN";
 
-      // Canvas setup
-      const width = 700, height = 450;
+      const width = 600, height = 400;
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext('2d');
 
@@ -69,7 +66,7 @@ module.exports = {
       ctx.textAlign = 'center';
       ctx.fillText('USER IDENTIFICATION', width / 2, 50);
 
-      // Line under header
+      // Underline
       ctx.strokeStyle = '#dddddd';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -77,56 +74,29 @@ module.exports = {
       ctx.lineTo(width - 100, 70);
       ctx.stroke();
 
-      // Profile picture (square with four corners)
-      const avatarUrl = `https://graph.facebook.com/${targetID}/picture?width=300&height=300&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
-      try {
-        // ইউজার এজেন্ট সহ axios দিয়ে ছবি আনা
-        const avatarResponse = await axios.get(avatarUrl, {
-          responseType: 'arraybuffer',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
-          },
-          timeout: 5000
-        });
-        const avatarImg = await loadImage(Buffer.from(avatarResponse.data));
-        
-        // Draw square image (no rounding)
-        ctx.drawImage(avatarImg, 50, 100, 180, 180);
-        // Optional border
-        ctx.strokeStyle = '#cccccc';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(50, 100, 180, 180);
-      } catch (e) {
-        // Fallback gray square
-        ctx.fillStyle = '#cccccc';
-        ctx.fillRect(50, 100, 180, 180);
-        ctx.strokeStyle = '#aaaaaa';
-        ctx.strokeRect(50, 100, 180, 180);
-      }
-
-      // Text labels (right side)
+      // Labels and values
       ctx.font = 'bold 20px "Arial"';
       ctx.fillStyle = '#333333';
       ctx.textAlign = 'left';
 
-      ctx.fillText('FULL NAME', 270, 150);
+      ctx.fillText('FULL NAME', 80, 140);
       ctx.font = '20px "Arial"';
       ctx.fillStyle = '#000000';
-      ctx.fillText(name.length > 25 ? name.substring(0,22)+'...' : name, 270, 185);
+      ctx.fillText(name.length > 25 ? name.substring(0,22)+'...' : name, 80, 175);
 
       ctx.font = 'bold 20px "Arial"';
       ctx.fillStyle = '#333333';
-      ctx.fillText('FACEBOOK ID (UID)', 270, 250);
+      ctx.fillText('FACEBOOK ID (UID)', 80, 230);
       ctx.font = '20px "Arial"';
       ctx.fillStyle = '#000000';
-      ctx.fillText(targetID, 270, 285);
+      ctx.fillText(targetID, 80, 265);
 
       ctx.font = 'bold 20px "Arial"';
       ctx.fillStyle = '#333333';
-      ctx.fillText('GENDER STATUS', 270, 350);
+      ctx.fillText('GENDER STATUS', 80, 320);
       ctx.font = '20px "Arial"';
       ctx.fillStyle = '#000000';
-      ctx.fillText(gender, 270, 385);
+      ctx.fillText(gender, 80, 355);
 
       // Save and send
       const cachePath = path.join(__dirname, 'cache', `uid_${targetID}.png`);
